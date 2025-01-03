@@ -1,13 +1,32 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, AbstractUser
+from django.conf import settings
+
 
 
 # Create your models here.
+class CustomUser(AbstractUser):
+    USER_TYPES = [
+        ('shop', 'Shop'),
+        ('customer', 'Customer'),
+    ]
+
+    type = models.CharField(max_length=10, choices=USER_TYPES, default='customer')
+
+
 
 # Модель магазина
 class Shop(models.Model):
     name = models.CharField(max_length=255, verbose_name="Название магазина")
     url = models.URLField(verbose_name="Ссылка на магазин")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="shops",
+        verbose_name="Владелец",
+        null=True,  # Если поле необязательно
+        blank=True  # Если поле может быть пустым
+    )
 
     def __str__(self):
         return self.name
@@ -35,6 +54,8 @@ class Product(models.Model):
 class ProductInfo(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="product_infos", verbose_name="Продукт")
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name="product_infos", verbose_name="Магазин")
+    external_id = models.PositiveIntegerField(verbose_name="Внешний ID", null=True, blank=True)
+    model = models.CharField(max_length=255, verbose_name="Модель", null=True, blank=True)
     name = models.CharField(max_length=255, verbose_name="Название информации")
     quantity = models.PositiveIntegerField(verbose_name="Количество")
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Цена")
@@ -72,7 +93,12 @@ class Order(models.Model):
         ("completed", "Завершён"),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders", verbose_name="Пользователь")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,  # Указание кастомной модели пользователя
+        on_delete=models.CASCADE,
+        related_name="orders",
+        verbose_name="Пользователь"
+    )
     dt = models.DateTimeField(auto_now_add=True, verbose_name="Дата и время")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="new", verbose_name="Статус заказа")
 
@@ -98,7 +124,12 @@ class Contact(models.Model):
         ("phone", "Телефон"),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="contacts", verbose_name="Пользователь")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,  # Указание кастомной модели пользователя
+        on_delete=models.CASCADE,
+        related_name="contacts",
+        verbose_name="Пользователь"
+    )
     type = models.CharField(max_length=20, choices=CONTACT_TYPE_CHOICES, verbose_name="Тип контакта")
     value = models.CharField(max_length=255, verbose_name="Значение")
 
